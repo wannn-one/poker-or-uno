@@ -1,0 +1,5 @@
+opencv-python==4.8.0
+# cuda==11.8
+# cudnn==8.6.0
+tensorflow==2.14.1
+# tensorflow[and-cuda] # for gpu support
