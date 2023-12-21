@@ -1,24 +1,25 @@
 import cv2
 import numpy as np
 import time
+import random
 
 from utils.train_utils import LoadModel
 from utils.constants import *
 
-fourcc = cv2.VideoWriter_fourcc(*'XVID')
-out = cv2.VideoWriter('5024211048_Ikhwan.mp4', fourcc, 20.0, (1280, 720))
+# fourcc = cv2.VideoWriter_fourcc(*'XVID')
+# out = cv2.VideoWriter('5024211048_Ikhwan.mp4', fourcc, 20.0, (1280, 720))
 
 def drawRectangleForCardDetectionFrame(frame):
     # frame size 1280 x 720
     # player area
     cv2.rectangle(img=frame, pt1=(x_player, y), pt2=(x_player + distance_x, y + distance_y), color=(255, 255, 255), thickness=2, lineType=cv2.LINE_AA)
-    cv2.putText(img=frame, text="Player", org=(x_player, y - 10), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=2, color=(25, 25, 25), thickness=2, lineType=cv2.LINE_AA)
-    cv2.putText(img=frame, text="Player", org=(x_player, y - 10), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=2, color=(255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
+    cv2.putText(img=frame, text="Player 1", org=(x_player, y - 10), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=2, color=(25, 25, 25), thickness=2, lineType=cv2.LINE_AA)
+    cv2.putText(img=frame, text="Player 1", org=(x_player, y - 10), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=2, color=(255, 255, 255), thickness=1, lineType=cv2.LINE_AA)
 
     # opponent area
     cv2.rectangle(img=frame, pt1=(x_opponent, y), pt2=(x_opponent + distance_x, y + distance_y), color=(255, 255, 255), thickness=2, lineType=cv2.LINE_AA)
-    cv2.putText(img=frame, text="Opponent", org=(x_opponent, y - 10), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=2, color=(25, 25, 25), thickness=2, lineType=cv2.LINE_AA)
-    cv2.putText(img=frame, text="Opponent", org=(x_opponent, y - 10), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=2, color=(255, 255, 255), thickness=1, lineType=cv2.LINE_AA)    
+    cv2.putText(img=frame, text="Computer", org=(x_opponent, y - 10), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=2, color=(25, 25, 25), thickness=2, lineType=cv2.LINE_AA)
+    cv2.putText(img=frame, text="Computer", org=(x_opponent, y - 10), fontFace=cv2.FONT_HERSHEY_PLAIN, fontScale=2, color=(255, 255, 255), thickness=1, lineType=cv2.LINE_AA)    
 
 def isCardValid(card, last_card):
     if last_card is None:
@@ -94,6 +95,19 @@ def main():
     computer_cards = 5
     total_deck_cards = 52 - player_cards - computer_cards
 
+    # random card for computer
+    computer_card_list = ['2C', '3C', 'JC', '8C', '6S']
+    # for i in range(computer_cards):
+    #     drawed_card = random.choice(class_names)
+    #     computer_card_list.append(drawed_card)
+
+    print("Computer has these cards:")
+    print(computer_card_list)
+    print(f"You can't have these cards: {computer_card_list}. Prepare your {player_cards} cards")
+
+    # pause until press any key
+    input("Press any key to start the game...")
+
     model = LoadModel("trained/trained-card-epoch-10.h5")
 
     print(f"Player has {player_cards} cards left, computer has {computer_cards} cards left, {total_deck_cards} cards left in deck")
@@ -117,14 +131,14 @@ def main():
         for i in range(1, total_labels):
             width, height = values[i, 2:4]
 
-            if 200 < width < 900 and 400 < height < 1000:
+            if 50 < width < 700 and 200 < height < 700:
                 top_left = values[i, 0:2]
                 bottom_right = top_left + values[i, 2:4]
 
                 frame = cv2.rectangle(img=frame, pt1=tuple(top_left), pt2=tuple(bottom_right), color=(0, 0, 0), thickness=2)
 
                 player_rect = (x_player, x_player + distance_x, y, y + distance_y)
-                opponent_rect = (x_opponent, x_opponent + distance_x, y, y + distance_y)
+                # opponent_rect = (x_opponent, x_opponent + distance_x, y, y + distance_y)
 
                 # print(f"Player has {player_cards} cards left, computer has {computer_cards} cards left, {total_deck_cards} cards left in deck")
 
@@ -139,17 +153,20 @@ def main():
                         print(f"Player played {text}")
                         print(f"Are you sure you want to play {text} (y/n)?")
 
-                        key = waitForKeyPress(1000)
+                        key = waitForKeyPress(500)
 
                         if key == ord('y'):
                             print(f"Player played {text}")
+                            # if text == 'Joker':
+                            #     print(f"You played {text}, computer got skipped")
+                            #     continue
                             last_card = text
                             player_cards -= 1
                             player_turn = not player_turn
                             if player_cards == 0:
                                 break
                             else:
-                                print(f"Player has {player_cards} cards left, computer turn")
+                                print(f"Player has {player_cards} cards left, computer has {computer_cards} cards left, computer turn")
                         elif key == ord('n'):
                             print(f"Player didn't play {text}, changing card...")
                         else:
@@ -158,7 +175,7 @@ def main():
                         print(f"Invalid card, should be {last_card} or {last_card[:-1]} but was {text}")
                         print(f"Do you want to draw a card? (y/n)")
 
-                        key = waitForKeyPress(1000)
+                        key = waitForKeyPress(500)
 
                         if key == ord('y'):
                             print(f"Player drew a card")
@@ -171,48 +188,87 @@ def main():
                         else:
                             print(f"Invalid input")
 
-                elif not player_turn and computer_cards > 0 and opponent_rect[0] <= top_left[0] <= opponent_rect[1] and opponent_rect[2] <= top_left[1] <= opponent_rect[3]:
-                    card = img_thres[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
-
-                    text, text_coord = predictCard(card, model, class_names, top_left)
-
-                    drawText(frame, text, text_coord)
-
-                    if isCardValid(text, last_card):
-                        print(f"Computer played {text}")
-                        print(f"Are you sure you want to play {text} (y/n)?")
-
-                        key = waitForKeyPress(1000)
-
-                        if key == ord('y'):
-                            print(f"Computer played {text}")
-                            last_card = text
-                            computer_cards -= 1
-                            player_turn = not player_turn
-                            if computer_cards == 0:
+                elif not player_turn and computer_cards > 0:
+                    # from last card of player, get the suit and rank, check if computer has the same suit or rank
+                    # if yes, computer will play the card
+                    # if no, computer will draw a card
+                    if last_card is not None:
+                        rank_last, suit_last = last_card[:-1], last_card[-1]
+                        for card in computer_card_list:
+                            # if card == 'Joker':
+                            #     print(f"Computer played {card}, you got skipped")
+                            #     last_card = card
+                            #     computer_cards -= 1
+                            #     computer_card_list.remove(card)
+                            #     continue
+                            rank_card, suit_card = card[:-1], card[-1]
+                            if rank_card == rank_last or suit_card == suit_last:
+                                print(f"Computer played {card}")
+                                last_card = card
+                                computer_cards -= 1
+                                computer_card_list.remove(card)
+                                player_turn = not player_turn
+                                if computer_cards == 0:
+                                    break
+                                else:
+                                    print(f"Computer has {computer_cards} cards left, player has {player_cards} cards left, player turn")
+                                    waitForKeyPress(5000)
+                                    print("Press any key to continue...")
                                 break
                             else:
+                                print(f"Computer draw a card")
+                                drawed_card = random.choice(class_names)
+                                print(f"Computer drawed {drawed_card}")
+                                waitForKeyPress(5000)
+                                print("Press any key to continue...")
+                                computer_card_list.append(drawed_card)
+                                computer_cards += 1
+                                total_deck_cards -= 1
+                                player_turn = not player_turn
                                 print(f"Computer has {computer_cards} cards left, player turn")
-                        elif key == ord('n'):
-                            print(f"Computer didn't play {text}, changing card...")
-                        else:
-                            print(f"Invalid input")
-                    else:
-                        print(f"Invalid card, should be {last_card} or {last_card[:-1]} but was {text}")
-                        print(f"Do you want to draw a card? (y/n)")
+                                break
 
-                        key = waitForKeyPress(1000)
+                    # card = img_thres[top_left[1]:bottom_right[1], top_left[0]:bottom_right[0]]
 
-                        if key == ord('y'):
-                            print(f"Computer drew a card")
-                            computer_cards += 1
-                            total_deck_cards -= 1
-                            player_turn = not player_turn
-                            print(f"Computer has {computer_cards} cards left, player turn")
-                        elif key == ord('n'):
-                            print(f"Computer didn't draw a card")
-                        else:
-                            print(f"Invalid input")
+                    # text, text_coord = predictCard(card, model, class_names, top_left)
+
+                    # drawText(frame, text, text_coord)
+
+                    # if isCardValid(text, last_card):
+                    #     print(f"Computer played {text}")
+                    #     print(f"Are you sure you want to play {text} (y/n)?")
+
+                    #     key = waitForKeyPress(500)
+
+                    #     if key == ord('y'):
+                    #         print(f"Computer played {text}")
+                    #         last_card = text
+                    #         computer_cards -= 1
+                    #         player_turn = not player_turn
+                    #         if computer_cards == 0:
+                    #             break
+                    #         else:
+                    #             print(f"Computer has {computer_cards} cards left, player has {player_cards} cards left, player turn")
+                    #     elif key == ord('n'):
+                    #         print(f"Computer didn't play {text}, changing card...")
+                    #     else:
+                    #         print(f"Invalid input")
+                    # else:
+                    #     print(f"Invalid card, should be {last_card} or {last_card[:-1]} but was {text}")
+                    #     print(f"Do you want to draw a card? (y/n)")
+
+                    #     key = waitForKeyPress(500)
+
+                    #     if key == ord('y'):
+                    #         print(f"Computer drew a card")
+                    #         computer_cards += 1
+                    #         total_deck_cards -= 1
+                    #         player_turn = not player_turn
+                    #         print(f"Computer has {computer_cards} cards left, player turn")
+                    #     elif key == ord('n'):
+                    #         print(f"Computer didn't draw a card")
+                    #     else:
+                    #         print(f"Invalid input")
 
         if player_cards == 0:
             print("Player won!")
@@ -221,7 +277,7 @@ def main():
             print("Computer won!")
             game_over = True
 
-        out.write(frame)
+        # out.write(frame)
         
         cv2.imshow("Poker or uno", frame)
 
